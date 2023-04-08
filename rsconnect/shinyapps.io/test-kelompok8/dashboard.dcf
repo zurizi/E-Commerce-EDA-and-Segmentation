@@ -1,0 +1,11 @@
+name: dashboard
+title:
+username:
+account: test-kelompok8
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8728996
+bundleId: 7031785
+url: https://test-kelompok8.shinyapps.io/dashboard/
+when: 1680246043.02504
+lastSyncTime: 1680246043.02507
