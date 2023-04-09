@@ -1,9 +1,10 @@
 library(shinydashboard)
 
-# Load ui.R
+# Load UI
 source("ui.R")
 
-# Load server.R
+# Load server
 source("server.R")
 
-shinyApp(ui, server)
+# Run the application
+shinyApp(ui = ui, server = server)
