@@ -5,14 +5,10 @@ library(DataExplorer)
 library(lubridate)
 library(agricolae)
 
-
 function(input, output) {
   custData <- read_csv("data.csv")
   
-  glimpse(custData)
-  
   custData <- na.omit(custData)
-  dim(custData)
   
   # separate date and time components of invoice date
   custData$date <-
@@ -66,6 +62,12 @@ function(input, output) {
   custData$hourOfDay <- as.factor(custData$hourOfDay)
   custData$dayOfWeek <- as.factor(custData$dayOfWeek)
   
+  # data csv
+  output$dataCsv <- renderDT({
+    custData_selected <- custData %>%
+      select(InvoiceNo, Description, Quantity, UnitPrice, CustomerID, Country, date, time, month, year, dayOfWeek)
+    print(custData_selected)
+  })
   
   #plot 1
   output$revenue_plot <- renderPlot({
@@ -76,6 +78,15 @@ function(input, output) {
       geom_line() +
       geom_smooth(method = 'auto', se = FALSE) +
       labs(x = 'Date', y = 'Revenue (£)')
+  })
+  output$revenue_month <- renderPlot({
+    custData %>%
+      group_by(year, month) %>%
+      summarise(revenue = sum(lineTotal)) %>%
+      ggplot(aes(x = month, y = revenue, fill = year)) +
+      geom_bar(stat = "identity", position = "dodge") +
+      labs(x = "Month", y = "Revenue (£)", fill = "Year") +
+      theme(legend.position = "bottom")
   })
   
   #plot selected
@@ -173,8 +184,19 @@ function(input, output) {
     ungroup() %>%
     arrange(desc(revenue))
   
+  
   output$countrySummaryTable <- renderDT({
     print(countrySummary)
+  })
+  
+  topCountries <- countrySummary %>%
+    slice(1:7)
+  
+  
+  output$topCountry_revenue <- renderPlot({
+    ggplot(topCountries, aes(x = Country, y = revenue)) +
+      geom_col() +
+      labs(x = 'Country', y = 'Revenue (£)', title = 'Top 7 Countries by Revenue')
   })
   
   output$country_select <- renderUI({
@@ -243,17 +265,98 @@ function(input, output) {
       labs(x = ' Country', y = 'Revenue (£)', title = 'Revenue by Country')
   })
   
+  
+  #Customer Segmentation
   custSummary <- custData %>%
     group_by(CustomerID) %>%
-    summarise(revenue = sum(lineTotal), transactions = n_distinct(InvoiceNo)) %>%
-    mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
+    summarise(revenue = sum(lineTotal),
+              transactions = n_distinct(InvoiceNo)) %>%
+    mutate(aveOrdVal = (round((
+      revenue / transactions
+    ), 2))) %>%
     ungroup() %>%
     arrange(desc(revenue))
   
+  custSummaryB <- custData %>%
+    group_by(CustomerID, InvoiceNo) %>%
+    summarise(revenue = sum(lineTotal),
+              transactions = n_distinct(InvoiceNo)) %>%
+    mutate(aveOrdVal = (round((
+      revenue / transactions
+    ), 2))) %>%
+    ungroup() %>%
+    arrange(revenue) %>%
+    mutate(cumsum = cumsum(revenue))
+  
+  custSummaryB <- custData %>%
+    group_by(InvoiceNo,
+             CustomerID,
+             Country,
+             date,
+             month,
+             year,
+             hourOfDay,
+             dayOfWeek) %>%
+    summarise(orderVal = sum(lineTotal)) %>%
+    mutate(recent = Sys.Date() - date) %>%
+    ungroup()
+  
+  custSummaryB$recent <- as.character(custSummaryB$recent)
+  custSummaryB$recentDays <-
+    sapply(
+      custSummaryB$recent,
+      FUN = function(x) {
+        strsplit(x, split = '[ ]')[[1]][1]
+      }
+    )
+  custSummaryB$recentDays <- as.integer(custSummaryB$recentDays)
+  
+  customerBreakdown <- custSummaryB %>%
+    group_by(CustomerID, Country) %>%
+    summarise(
+      orders = n_distinct(InvoiceNo),
+      revenue = sum(orderVal),
+      meanRevenue = round(mean(orderVal), 2),
+      medianRevenue = median(orderVal),
+      mostDay = names(which.max(table(dayOfWeek))),
+      mostHour = names(which.max(table(hourOfDay))),
+      recency = min(recentDays)
+    ) %>%
+    ungroup()
+  
+  custBreakSum <- customerBreakdown %>%
+    filter(orders > 5, revenue > 100)
+  
+  output$tableCustomer_plot <- renderDT({
+    print(custBreakSum)
+  })
+  
+  
+  output$heatmapCust <- renderPlot({
+    custMat <- custBreakSum %>%
+      select(recency, revenue, meanRevenue, medianRevenue, orders) %>%
+      as.matrix()
+    
+    rownames(custMat) <- custBreakSum$CustomerID
+    options(repr.plot.width = 7, repr.plot.height = 6)
+    heatmap(scale(custMat), cexCol = 0.7)
+  })
   
   output$table_customer <- renderDT({
     print(custSummary)
   })
   
+  
+  histogramPlot <- reactive({
+    if (input$historam_plot == "Revenue") {
+      ggplot(custSummary, aes(revenue)) + geom_histogram() + scale_x_log10() + labs(x = 'Revenue', y = 'Count of Customers', title = 'Histogram of Revenue per customer (Log Scale)')
+    } else {
+      ggplot(custSummary, aes(transactions)) + geom_histogram() + scale_x_log10() + labs(x = 'Number of Transactions', y = 'Count of Customers', title = 'Histogram of Transactions per customer')
+    }
+  })
+  
+  output$histogram_customer <- renderPlot({
+    histogramPlot()
+  })
   
 }

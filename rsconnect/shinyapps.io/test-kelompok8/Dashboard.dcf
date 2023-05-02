@@ -1,0 +1,13 @@
+name: Dashboard
+title: Dashboard
+username:
+account: test-kelompok8
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8728996
+bundleId: 7067963
+url: https://test-kelompok8.shinyapps.io/dashboard/
+when: 1681065166.29379
+lastSyncTime: 1681065166.29381
+asMultiple: FALSE
+asStatic: FALSE

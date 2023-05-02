@@ -2,7 +2,7 @@ library(shinydashboard)
 library(DT)
 
 dashboardPage(
-  dashboardHeader(title = "Kelompok 8"),
+  dashboardHeader(title = "E-Commerce EDA and segmentation"),
   dashboardSidebar(
     sidebarMenu(
       menuItem(
@@ -26,7 +26,7 @@ dashboardPage(
         icon = icon("globe")
       ),
       menuItem(
-        "Customer Segmentation",
+        "Customer Summary",
         tabName = "customer",
         icon = icon("users")
       )
@@ -37,16 +37,37 @@ dashboardPage(
     tabItems(
       # First tab content
       tabItem(tabName = "dashboard",
-              fluidRow(column(
-                width = 6,
+              fluidRow(
                 box(
-                  title = "Revenue by Date",
+                  title = "Data",
                   width = 12,
                   solidHeader = TRUE,
-                  status = "primary",
-                  plotOutput("revenue_plot", height = 450)
+                  status = "success",
+                  DTOutput("dataCsv")
                 )
-              ))),
+              ),
+              fluidRow(
+                column(
+                  width = 6,
+                  box(
+                    title = "Revenue by Date",
+                    width = 12,
+                    solidHeader = TRUE,
+                    status = "primary",
+                    plotOutput("revenue_plot", height = 400)
+                  )
+                ),
+                column(
+                  width = 6,
+                  box(
+                    title = "Revenue by Month",
+                    width = 12,
+                    solidHeader = TRUE,
+                    status = "primary",
+                    plotOutput("revenue_month", height = 400)
+                  )
+                )
+              )),
       # Second tab content
       tabItem(tabName = "dayOfWeek",
               fluidRow(
@@ -101,6 +122,7 @@ dashboardPage(
                   width = 12,
                   solidHeader = TRUE,
                   status = "primary",
+                  plotOutput("topCountry_revenue", height = 300),
                   DTOutput("countrySummaryTable")
                 )
               ),
@@ -137,16 +159,46 @@ dashboardPage(
                 )
               )),
       # 5 tab content
-      tabItem(tabName = "customer",
-              fluidRow(column(
-                width = 12,
-                box(
-                  title = "Customer Segmentation",
-                  width = 12,
-                  solidHeader = TRUE,
-                  status = "primary",
-                  DTOutput("table_customer")
-                )
-              )))
+      tabItem(
+        tabName = "customer",
+        fluidRow(column(
+          width = 12,
+          box(
+            title = "Customer Summary",
+            width = 12,
+            solidHeader = TRUE,
+            status = "primary",
+            DTOutput("table_customer")
+          )
+        )),
+        fluidRow(column(
+          width = 12,
+          box(
+            title = "Histogram Customer",
+            width = 12,
+            solidHeader = TRUE,
+            status = "primary",
+            selectInput(
+              "historam_plot",
+              "Histogram of:",
+              choices = c("Revenue", "Transactions"),
+              selected = "Revenue"
+            ),
+            plotOutput("histogram_customer", height = 350)
+          )
+        )),
+        fluidRow(column(
+          width = 12,
+          box(
+            title = "Customer Breakdown",
+            width = 12,
+            solidHeader = TRUE,
+            status = "primary",
+            DTOutput("tableCustomer_plot"),
+            plotOutput("heatmapCust", height = 1000)
+          )
+        )),
+        
+      )
     ))
 )
